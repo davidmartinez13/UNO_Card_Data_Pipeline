@@ -13,6 +13,11 @@ def remove_border(image,h = 6 , w = 6):
 
     return cropped_image
 
+def calculate_centroid(box):
+    x = int((box[0] + box[2]) / 2)
+    y = int((box[1] + box[3]) / 2)
+    return x, y
+
 def load_and_place_images(background_path, crop_folder):
     # Read the background image using OpenCV
     background = cv2.imread(background_path)
@@ -48,6 +53,10 @@ def load_and_place_images(background_path, crop_folder):
         y_spacing = 0.9
         x_position = col * int(bg_width // x_spacing) + offset_x
         y_position = row * int(bg_height// y_spacing) + offset_y
+        # Calculate the centroid of the bounding box
+        centroid_x, centroid_y = calculate_centroid([x_position, y_position, x_position+crop.shape[1], y_position+crop.shape[0]])
+
+        # Draw a bounding box around the placed crop
 
         # Paste the cropped image onto the result image
         result_image[y_position:y_position+crop.shape[0], x_position:x_position+crop.shape[1]] = crop
@@ -55,9 +64,12 @@ def load_and_place_images(background_path, crop_folder):
         label = os.path.splitext(crop_images[i])[0]
         cv2.putText(result_image, label, (x_position, y_position-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
+        # bounding_box = [centroid_x, centroid_x, crop.shape[1], crop.shape[0]]
+        x_min , y_min = x_position, y_position+crop.shape[0]
+        cv2.circle(result_image, (x_min, y_min), 5, (0, 0, 255), -1)
         # Display the final result
-        cv2.imshow("Result Image", result_image)
-        key = cv2.waitKey(0)
+    cv2.imshow("Result Image", result_image)
+    key = cv2.waitKey(0)
     if key == 27:
         cv2.destroyAllWindows()
         quit()
@@ -69,6 +81,6 @@ if __name__ == "__main__":
 
     # Replace 'crop_folder' with the path to the folder containing cropped images
     crop_folder = "./images/cards"
-    while True:
+    for i in range(2):
         load_and_place_images(background_path, crop_folder)
 
