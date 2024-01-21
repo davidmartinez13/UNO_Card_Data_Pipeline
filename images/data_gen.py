@@ -28,6 +28,8 @@ def load_and_place_images(background_path, crop_folder):
     # Shuffle the list for random selection
     random.shuffle(crop_images)
 
+    offset_x = random.randint(0, 1000)
+    offset_y = random.randint(0, 650)
     # Iterate through the first 6 cropped images
     for i in range(min(6, len(crop_images))):
         # Read and resize the cropped image to fit the background
@@ -41,8 +43,7 @@ def load_and_place_images(background_path, crop_folder):
         # Calculate the position to place the cropped image in the result image
         row = i % 2
         col = i // 2
-        offset_x = 200
-        offset_y = 300
+        
         x_spacing = 1.5
         y_spacing = 0.9
         x_position = col * int(bg_width // x_spacing) + offset_x
