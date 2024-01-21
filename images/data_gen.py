@@ -2,8 +2,64 @@ import cv2
 import os
 import random
 import numpy as np
+label_map = {
+'0blue.png':"zero",
+'0green.png':"zero",
+'0red.png':"zero",
+'0yellow.png':"zero",
+'1blue.png':"one",
+'1green.png':"one",
+'1red.png':"one",
+'1yellow.png':"one",
+'2blue.png':"two",
+'2green.png':"two",
+'2red.png':"two",
+'2yellow.png':"two",
+'3blue.png':"three",
+'3green.png':"three",
+'3red.png':"three",
+'3yellow.png':"three",
+'4blue.png':"four",
+'4green.png':"four",
+'4red.png':"four",
+'4yellow.png':"four",
+'5blue.png':"five",
+'5green.png':"five",
+'5red.png':"five",
+'5yellow.png':"five",
+'6blue.png':"six",
+'6green.png':"six",
+'6red.png':"six",
+'6yellow.png':"six",
+'7blue.png':"seven",
+'7green.png':"seven",
+'7red.png':"seven",
+'7yellow.png':"seven",
+'8blue.png':"eight",
+'8green.png':"eight",
+'8red.png':"eight",
+'8yellow.png':"eight",
+'9blue.png':"nine",
+'9green.png':"nine",
+'9red.png':"nine",
+'9yellow.png':"nine",
+'blockblue.png':"block",
+'blockgreen.png':"block",
+'blockred.png':"block",
+'blockyellow.png':"block",
+'change.png':"change",
+'plus2blue.png':"plus2",
+'plus2green.png':"plus2",
+'plus2red.png':"plus2",
+'plus2yellow.png':"plus2",
+'plus4.png':"plus4",
+'reverseblue.png':"reverse",
+'reversegreen.png':"reverse",
+'reversered.png':"reverse",
+'reverseyellow.png':"reverse"
+}
 
-def remove_border(image,h = 6 , w = 6):
+def remove_border(image, h = 6 , w = 6):
     # Crop the image based on the bounding box
     y,x,c = image.shape
     cropped_image = image[h:y-h, w:x-w]
@@ -29,7 +85,7 @@ def load_and_place_images(background_path, crop_folder):
 
     # List all the cropped images in the specified folder
     crop_images = [f for f in os.listdir(crop_folder) if f.endswith(".png")]
-
+    print(sorted(crop_images))
     # Shuffle the list for random selection
     random.shuffle(crop_images)
 
