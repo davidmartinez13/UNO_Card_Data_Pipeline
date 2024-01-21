@@ -51,6 +51,9 @@ def load_and_place_images(background_path, crop_folder):
 
         # Paste the cropped image onto the result image
         result_image[y_position:y_position+crop.shape[0], x_position:x_position+crop.shape[1]] = crop
+        cv2.rectangle(result_image, (x_position, y_position), (x_position+crop.shape[1], y_position+crop.shape[0]), (0, 255, 0), 3)
+        label = os.path.splitext(crop_images[i])[0]
+        cv2.putText(result_image, label, (x_position, y_position-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Display the final result
         cv2.imshow("Result Image", result_image)
