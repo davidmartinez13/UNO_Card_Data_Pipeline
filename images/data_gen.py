@@ -1,5 +1,6 @@
 import cv2
 import os
+import json
 import random
 import numpy as np
 import datetime
@@ -156,7 +157,7 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations):
     cv2.imshow("Result Image", result_image)
     # Create img data
     now = str(datetime.datetime.now()).replace(':','').replace(' ','_').replace('-','_')
-    image_name = now+'.jpg                                        '
+    image_name = now+'.jpg'
     image_data = {
         "id": i,  # Use the same identifier as the annotation
         "width": width,  # Set the width of the image
@@ -185,3 +186,22 @@ if __name__ == "__main__":
         images.append(image_data)
     print(annotations)
     print(len(images))
+
+    coco_data = {
+    "info": {
+        "description": "UNO dataset",  # Add a description for the dataset
+        "url": "",  # Add a URL for the dataset (optional)
+        "version": "1.0",  # Set the version of the dataset
+        "year": 2024,  # Set the year the dataset was created
+        "contributor": "",  # Add the name of the contributor (optional)
+        "date_created": "2024-01-01T00:00:00",  # Set the date the dataset was created
+    },
+    "licenses": [],  # Add a list of licenses for the images in the dataset (optional)
+    "images": images,
+    "annotations": annotations,  # Add the list of annotations to the JSON object
+    "categories": categories,  # Add a list of categories for the objects in the dataset
+}
+
+# Save the COCO JSON object to a file
+with open("UNO_dataset.json", "w") as f:
+    json.dump(coco_data, f)
