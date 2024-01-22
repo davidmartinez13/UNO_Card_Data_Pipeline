@@ -95,7 +95,7 @@ def calculate_centroid(box):
     y = int((box[1] + box[3]) / 2)
     return x, y
 
-def load_and_place_images(background_path, crop_folder, image_id, annotations):
+def load_and_place_images(background_path, crop_folder, image_id, annotations, image_out, show_bbox = False):
     
     # Read the background image using OpenCV
     background = cv2.imread(background_path)
@@ -136,13 +136,14 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations):
 
         # Paste the cropped image onto the result image
         result_image[y_position:y_position+crop_height, x_position:x_position+crop_width] = crop
-        cv2.rectangle(result_image, (x_position, y_position), (x_position+crop_width, y_position+crop_height), (0, 255, 0), 3)
-        label = os.path.splitext(crop_images[i])[0]
-        cv2.putText(result_image, label, (x_position, y_position-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-
-        # bounding_box = [centroid_x, centroid_x, crop_width, crop_height]
         x_min , y_min = x_position, y_position
-        cv2.circle(result_image, (x_min, y_min), 5, (0, 0, 255), -1)
+        if show_bbox:
+            cv2.rectangle(result_image, (x_position, y_position), (x_position+crop_width, y_position+crop_height), (0, 255, 0), 3)
+            label = os.path.splitext(crop_images[i])[0]
+            cv2.putText(result_image, label, (x_position, y_position-10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+            # bounding_box = [centroid_x, centroid_x, crop_width, crop_height]
+            cv2.circle(result_image, (x_min, y_min), 5, (0, 0, 255), -1)
         # Display the final result
         # Create annotation:
         annotation = {
@@ -158,12 +159,12 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations):
     # Create img data
     now = str(datetime.datetime.now()).replace(':','').replace(' ','_').replace('-','_')
     image_name = now+'.jpg'
+    cv2.imwrite(image_out+"/"+image_name, result_image)
     image_data = {
         "id": i,  # Use the same identifier as the annotation
         "width": width,  # Set the width of the image
         "height": height,  # Set the height of the image
         "file_name": image_name,  # Set the file name of the image
-        "license": 1,  # Set the license for the image (optional)
     }
     key = cv2.waitKey(0)
     if key == 27:
@@ -179,12 +180,14 @@ if __name__ == "__main__":
 
     # Replace "crop_folder" with the path to the folder containing cropped images
     crop_folder = "./images/cards"
+    image_out = "./images/dataset"
+    annot_out = "./annotations/UNO_dataset.json"
     annotations = []
     images = []
     for image_id in range(20):
-        annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations)
+        annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations, image_out)
         images.append(image_data)
-    print(annotations)
+    print(len(annotations))
     print(len(images))
 
     coco_data = {
@@ -203,5 +206,5 @@ if __name__ == "__main__":
 }
 
 # Save the COCO JSON object to a file
-with open("UNO_dataset.json", "w") as f:
+with open(annot_out, "w") as f:
     json.dump(coco_data, f)
