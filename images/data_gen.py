@@ -161,7 +161,7 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
     image_name = now+'.jpg'
     cv2.imwrite(image_out+"/"+image_name, result_image)
     image_data = {
-        "id": i,  # Use the same identifier as the annotation
+        "id": image_id,  # Use the same identifier as the annotation
         "width": width,  # Set the width of the image
         "height": height,  # Set the height of the image
         "file_name": image_name,  # Set the file name of the image
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     annot_out = "./annotations/UNO_dataset.json"
     annotations = []
     images = []
-    for image_id in range(20):
+    for image_id in range(1000):
         annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations, image_out)
         images.append(image_data)
     print(len(annotations))
