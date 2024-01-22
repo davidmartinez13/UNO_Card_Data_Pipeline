@@ -2,6 +2,8 @@ import cv2
 import os
 import random
 import numpy as np
+import datetime
+
 label_map = {
 "0blue.png":"zero",
 "0green.png":"zero",
@@ -100,8 +102,9 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations):
     bg_height, bg_width, _ = background.shape
     img_scaling = 5
     # Create a new image to draw on
-    result_image = cv2.resize(background,(bg_width*img_scaling, bg_height*img_scaling))
-
+    background_upscaled = cv2.resize(background,(bg_width*img_scaling, bg_height*img_scaling))
+    height, width, _ = background_upscaled.shape
+    result_image = background_upscaled.copy()
     # List all the cropped images in the specified folder
     crop_images = [f for f in os.listdir(crop_folder) if f.endswith(".png")]
     # Shuffle the list for random selection
@@ -151,12 +154,22 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations):
         }
         annotations.append(annotation)
     cv2.imshow("Result Image", result_image)
+    # Create img data
+    now = str(datetime.datetime.now()).replace(':','').replace(' ','_').replace('-','_')
+    image_name = now+'.jpg                                        '
+    image_data = {
+        "id": i,  # Use the same identifier as the annotation
+        "width": width,  # Set the width of the image
+        "height": height,  # Set the height of the image
+        "file_name": image_name,  # Set the file name of the image
+        "license": 1,  # Set the license for the image (optional)
+    }
     key = cv2.waitKey(0)
     if key == 27:
         cv2.destroyAllWindows()
         quit()
     
-    return annotations
+    return annotations, image_data
 
 if __name__ == "__main__":
 
@@ -168,5 +181,7 @@ if __name__ == "__main__":
     annotations = []
     images = []
     for image_id in range(20):
-        annotations = load_and_place_images(background_path, crop_folder, image_id, annotations)
+        annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations)
+        images.append(image_data)
     print(annotations)
+    print(len(images))
