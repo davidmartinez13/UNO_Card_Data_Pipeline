@@ -4,6 +4,7 @@ import json
 import random
 import numpy as np
 import datetime
+import math
 
 label_map = {
 "0blue.png":"zero",
@@ -51,11 +52,17 @@ label_map = {
 "blockred.png":"block",
 "blockyellow.png":"block",
 "change.png":"change",
+"change1.png":"change",
+"change2.png":"change",
+"change3.png":"change",
 "plus2blue.png":"plus2",
 "plus2green.png":"plus2",
 "plus2red.png":"plus2",
 "plus2yellow.png":"plus2",
 "plus4.png":"plus4",
+"plus41.png":"plus4",
+"plus42.png":"plus4",
+"plus43.png":"plus4",
 "reverseblue.png":"reverse",
 "reversegreen.png":"reverse",
 "reversered.png":"reverse",
@@ -95,7 +102,58 @@ def calculate_centroid(box):
     y = int((box[1] + box[3]) / 2)
     return x, y
 
-def load_and_place_images(background_path, crop_folder, image_id, annotations, image_out, show_bbox = False):
+def add_noise(image, intensity=random.randint(0, 50)):
+    """Add random noise to the image."""
+    noise = np.random.normal(0, intensity, image.shape)
+    noisy_image = np.clip(image + noise, 0, 255).astype(np.uint8)
+    return noisy_image
+
+def pixelate(image, pixel_size=random.randint(1, 5)):
+    """Pixelate the image."""
+    h, w = image.shape[:2]
+    small = cv2.resize(image, (w // pixel_size, h // pixel_size), interpolation=cv2.INTER_LINEAR)
+    pixelated = cv2.resize(small, (w, h), interpolation=cv2.INTER_NEAREST)
+    return pixelated
+
+def adjust_brightness_contrast(image, alpha=random.uniform(0.5, 1.0), beta=random.randint(0, 10)):
+    """Adjust brightness and contrast of the image."""
+    adjusted_image = cv2.convertScaleAbs(image, alpha=alpha, beta=beta)
+    return adjusted_image
+
+def dummy_transform(image):
+    return image
+
+def rotate_image_non_cropped(cv_image, angle=10):
+    (h, w) = cv_image.shape[:2]
+    h_offset = 0
+    w_offset = 0
+    # center = (w // 2 +w_offset, h // 2+ h_offset)
+    center = (w // 2 +w_offset, h // 2+ h_offset)
+
+    new_w = int(w * abs(math.sin(math.radians(angle))) + h * abs(math.cos(math.radians(angle))))
+    new_h = int(w * abs(math.cos(math.radians(angle))) + h * abs(math.sin(math.radians(angle))))
+
+    M = cv2.getRotationMatrix2D(center, angle, 1.0)
+    rotated_image = cv2.warpAffine(cv_image, M, (new_w, new_h))
+
+    return rotated_image
+
+def rotate_image(image, angle=random.randint(-15, 15)):
+    rows, cols, _ = image.shape
+    rotation_matrix = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
+    rotated_image = cv2.warpAffine(image, rotation_matrix, (cols, rows), borderMode=cv2.BORDER_REFLECT, borderValue=(0, 0, 0))
+    return rotated_image
+
+def apply_shear(image, shear_factor=random.uniform(-0.22, 0.22)):
+    rows, cols, _ = image.shape
+    shear_matrix = np.array([[1, shear_factor, 0], [0, 1, 0]])
+
+    # Apply shear transformation
+    sheared_image = cv2.warpAffine(image, shear_matrix, (cols, rows), borderMode=cv2.BORDER_REFLECT, borderValue=(0,0,0))
+    
+    return sheared_image
+
+def load_and_place_images(background_path, crop_folder, image_id, annotations, image_out, recording, show_bbox = False, single=True, show = False):
     
     # Read the background image using OpenCV
     background = cv2.imread(background_path)
@@ -110,16 +168,26 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
     crop_images = [f for f in os.listdir(crop_folder) if f.endswith(".png")]
     # Shuffle the list for random selection
     random.shuffle(crop_images)
-
+    transforms = [rotate_image,apply_shear, dummy_transform]
+    modifications = [add_noise, pixelate, adjust_brightness_contrast, dummy_transform]
     offset_x = random.randint(0, 1000)
     offset_y = random.randint(0, 650)
     # Iterate through the first 6 cropped images
+
     for i in range(min(6, len(crop_images))):
+        if single and i!=0:
+            continue
         # Read and resize the cropped image to fit the background
         crop_path = os.path.join(crop_folder, crop_images[i])
         crop = cv2.imread(crop_path)
         crop = remove_border(crop)
-        crop_height, crop_width, _ = crop.shape
+        if single:
+            scale = random.uniform(1.5, 4.5)
+            crop = cv2.resize(crop,(int(crop.shape[1]*scale), int(crop.shape[0]*scale)))
+        new_crop = transforms[random.randint(0, len(transforms)-1)](crop)
+        new_crop = modifications[random.randint(0, len(modifications)-1)](new_crop)
+        # new_crop = apply_shear(crop)
+        crop_height, crop_width, _ = new_crop.shape
 
         # Calculate the position to place the cropped image in the result image
         row = i % 2
@@ -127,15 +195,27 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
         
         x_spacing = 1.5
         y_spacing = 0.9
-        x_position = col * int(bg_width // x_spacing) + offset_x
-        y_position = row * int(bg_height// y_spacing) + offset_y
+        if single:
+            x_position = (result_image.shape[1] - crop.shape[1]) // 2
+            y_position = (result_image.shape[0] - crop.shape[0]) // 2
+        else:
+            x_position = col * int(bg_width // x_spacing) + offset_x
+            y_position = row * int(bg_height// y_spacing) + offset_y
         # Calculate the centroid of the bounding box
         centroid_x, centroid_y = calculate_centroid([x_position, y_position, x_position+crop_width, y_position+crop_height])
 
         # Draw a bounding box around the placed crop
 
         # Paste the cropped image onto the result image
-        result_image[y_position:y_position+crop_height, x_position:x_position+crop_width] = crop
+        # result_image[y_position:y_position+crop_height, x_position:x_position+crop_width] = new_crop
+        alpha = 1  # Adjust the blending strength
+        result_image[y_position:y_position+new_crop.shape[0], x_position:x_position+new_crop.shape[1]] = cv2.addWeighted(
+            result_image[y_position:y_position+new_crop.shape[0], x_position:x_position+new_crop.shape[1]],
+            1 - alpha,
+            new_crop,
+            alpha,
+            0
+        )
         x_min , y_min = x_position, y_position
         if show_bbox:
             cv2.rectangle(result_image, (x_position, y_position), (x_position+crop_width, y_position+crop_height), (0, 255, 0), 3)
@@ -155,17 +235,24 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
         "iscrowd": 0,  # Set iscrowd to 0 to indicate that the object is not part of a crowd
         }
         annotations.append(annotation)
-    cv2.imshow("Result Image", result_image)
+
+    if show:
+        cv2.imshow("Result Image", result_image)
+        
     # Create img data
     now = str(datetime.datetime.now()).replace(':','').replace(' ','_').replace('-','_')
     image_name = now+'.jpg'
-    cv2.imwrite(image_out+"/"+image_name, result_image)
+
+    if recording:
+        cv2.imwrite(image_out+"/"+image_name, result_image)
+
     image_data = {
         "id": image_id,  # Use the same identifier as the annotation
         "width": width,  # Set the width of the image
         "height": height,  # Set the height of the image
         "file_name": image_name,  # Set the file name of the image
     }
+
     key = cv2.waitKey(0)
     if key == 27:
         cv2.destroyAllWindows()
@@ -174,7 +261,7 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
     return annotations, image_data
 
 if __name__ == "__main__":
-
+    recording = True
     # Replace "background.jpg" with the path to your background image
     background_path = "./images/savedImage.jpg"
 
@@ -184,8 +271,10 @@ if __name__ == "__main__":
     annot_out = "./annotations/UNO_dataset.json"
     annotations = []
     images = []
+    single = True
     for image_id in range(1000):
-        annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations, image_out)
+        annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations, image_out, recording,single=single)
+        single = not single
         images.append(image_data)
     print(len(annotations))
     print(len(images))
@@ -203,8 +292,8 @@ if __name__ == "__main__":
     "images": images,
     "annotations": annotations,  # Add the list of annotations to the JSON object
     "categories": categories,  # Add a list of categories for the objects in the dataset
-}
-
-# Save the COCO JSON object to a file
-with open(annot_out, "w") as f:
-    json.dump(coco_data, f)
+    }
+    if recording:
+        # Save the COCO JSON object to a file
+        with open(annot_out, "w") as f:
+            json.dump(coco_data, f)
