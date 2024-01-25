@@ -238,7 +238,7 @@ def load_and_place_images(background_path, crop_folder, image_id, annotations, i
 
     if show:
         cv2.imshow("Result Image", result_image)
-        
+
     # Create img data
     now = str(datetime.datetime.now()).replace(':','').replace(' ','_').replace('-','_')
     image_name = now+'.jpg'
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     annotations = []
     images = []
     single = True
-    for image_id in range(1000):
+    for image_id in range(2000):
         annotations, image_data = load_and_place_images(background_path, crop_folder, image_id, annotations, image_out, recording,single=single)
         single = not single
         images.append(image_data)
